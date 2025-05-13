@@ -1,46 +1,45 @@
 package com.example.book_api.controller;
 
 import com.example.book_api.model.Book;
-import com.example.book_api.repository.BookRepository;
+import com.example.book_api.service.BookService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/books")
 public class BookController {
 
-    private final BookRepository bookRepository;
-
-    public BookController(BookRepository bookRepository) {
-        this.bookRepository = bookRepository;
-    }
-
-    @PostMapping
-    public Book createBook(@RequestBody Book book) {
-        return bookRepository.save(book);
-    }
+    @Autowired
+    private BookService bookService;
 
     @GetMapping
-    public List<Book> getAllBooks() {
-        return bookRepository.findAll();
+    public ResponseEntity<List<Book>> getAllBooks() {
+        return ResponseEntity.ok(bookService.getAllBooks());
     }
 
     @GetMapping("/{isbn}")
-    public ResponseEntity<Book> getBook(@PathVariable String isbn) {
-        return bookRepository.findById(isbn)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Book> getBookByIsbn(@PathVariable String isbn) {
+        Book book = bookService.getBookByIsbn(isbn);
+        if (book != null) {
+            return ResponseEntity.ok(book);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<Book> createBook(@RequestBody Book book) {
+        return ResponseEntity.ok(bookService.createBook(book));
     }
 
     @PutMapping("/{isbn}")
-    public ResponseEntity<Book> updateBook(@PathVariable String isbn, @RequestBody Book updatedBook) {
-        Optional<Book> existingBook = bookRepository.findById(isbn);
-        if (existingBook.isPresent()) {
-            updatedBook.setIsbn(isbn);
-            return ResponseEntity.ok(bookRepository.save(updatedBook));
+    public ResponseEntity<Book> updateBook(@PathVariable String isbn, @RequestBody Book book) {
+        Book updated = bookService.updateBook(isbn, book);
+        if (updated != null) {
+            return ResponseEntity.ok(updated);
         } else {
             return ResponseEntity.notFound().build();
         }
@@ -48,11 +47,7 @@ public class BookController {
 
     @DeleteMapping("/{isbn}")
     public ResponseEntity<Void> deleteBook(@PathVariable String isbn) {
-        if (bookRepository.existsById(isbn)) {
-            bookRepository.deleteById(isbn);
-            return ResponseEntity.noContent().build();
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+        bookService.deleteBook(isbn);
+        return ResponseEntity.noContent().build();
     }
 }
